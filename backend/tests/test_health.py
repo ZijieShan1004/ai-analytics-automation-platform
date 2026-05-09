@@ -1,0 +1,8 @@
+from fastapi.testclient import TestClient
+
+
+# Test the health check endpoint.
+def test_health_check(client: TestClient):
+    response = client.get("/api/v1/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "healthy"}

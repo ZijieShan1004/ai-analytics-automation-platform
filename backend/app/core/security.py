@@ -1,0 +1,36 @@
+from datetime import datetime, timedelta, timezone
+from typing import Any
+
+from fastapi import HTTPException, status
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+
+from app.core.config import get_settings
+
+settings = get_settings()
+password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+# Verify a plain password against a hashed password.
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return password_context.verify(plain_password, hashed_password)
+
+
+# Hash a plain password for database storage.
+def get_password_hash(password: str) -> str:
+    return password_context.hash(password)
+
+
+# Create a signed JWT access token.
+def create_access_token(subject: str) -> str:
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=settings.access_token_expire_minutes)
+    payload = {"sub": subject, "exp": expires_at}
+    return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+
+
+# Decode and validate a JWT access token.
+def decode_access_token(token: str) -> dict[str, Any]:
+    try:
+        return jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
+    except JWTError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from exc
